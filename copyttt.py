@@ -77,6 +77,9 @@ def create_folder(access_token, drive_id, parent_id, folder_name, retries=3):
         elif attempt < retries - 1:
             time.sleep(2 ** attempt)  # 指数退避重试
         else:
+            # 打印详细的错误信息
+            print(f"Failed to create folder: {folder_data}")
+            print(f"Response: {response_data}")
             raise Exception(f"Failed to create folder after {retries} attempts: {response_data}")
 
 # 递归复制文件夹及其内容
