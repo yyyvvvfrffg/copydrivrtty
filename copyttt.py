@@ -80,7 +80,9 @@ if __name__ == "__main__":
             
             # 修改 userPrincipalName 为使用目标租户的已验证域名
             if 'userPrincipalName' in user:
-                user['userPrincipalName'] = user['userPrincipalName'].split('@')[0] + '@' + verified_domain
+                user_prefix = user['userPrincipalName'].split('@')[0]
+                user['userPrincipalName'] = user_prefix + '@' + verified_domain
+                user['mailNickname'] = user_prefix
             
             # 添加 accountEnabled 和 passwordProfile 字段，使用提供的密码
             user['accountEnabled'] = True
