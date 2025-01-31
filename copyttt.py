@@ -30,9 +30,13 @@ def get_drives(access_token):
     else:
         raise Exception(f"Failed to get drives: {response_data}")
 
-# 读取源租户文件夹和文件数据
-def get_drive_items(access_token, drive_id):
-    url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root/children"
+# 读取文件夹和文件数据
+def get_drive_items(access_token, drive_id, parent_id=None):
+    if parent_id:
+        url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/items/{parent_id}/children"
+    else:
+        url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root/children"
+    
     headers = {"Authorization": f"Bearer {access_token}"}
     response = requests.get(url, headers=headers)
     response_data = response.json()
@@ -41,17 +45,49 @@ def get_drive_items(access_token, drive_id):
     else:
         raise Exception(f"Failed to get drive items: {response_data}")
 
-# 创建或更新目标租户中的文件夹和文件
-def create_or_update_drive_item(access_token, drive_id, item_data, parent_id=None):
-    if parent_id:
-        url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/items/{parent_id}/children"
-    else:
-        url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root/children"
-    
-    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
-    response = requests.post(url, headers=headers, json=item_data)
+# 下载文件内容
+def download_file(download_url):
+    response = requests.get(download_url)
+    return response.content
+
+# 上传文件到目标租户
+def upload_file(access_token, drive_id, parent_id, file_name, file_content):
+    url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/items/{parent_id}:/{file_name}:/content"
+    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/octet-stream"}
+    response = requests.put(url, headers=headers, data=file_content)
     response_data = response.json()
     return response_data
+
+# 创建文件夹到目标租户
+def create_folder(access_token, drive_id, parent_id, folder_name):
+    url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/items/{parent_id}/children"
+    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+    folder_data = {
+        "name": folder_name,
+        "folder": {},
+        "@microsoft.graph.conflictBehavior": "replace"
+    }
+    response = requests.post(url, headers=headers, json=folder_data)
+    response_data = response.json()
+    return response_data
+
+# 递归复制文件夹及其内容
+def copy_folder_contents(source_token, target_token, source_drive_id, target_drive_id, source_parent_id, target_parent_id):
+    items = get_drive_items(source_token, source_drive_id, source_parent_id)
+    for item in items:
+        if 'folder' in item:
+            # 创建文件夹
+            folder_name = item['name']
+            created_folder = create_folder(target_token, target_drive_id, target_parent_id, folder_name)
+            # 递归复制文件夹内容
+            copy_folder_contents(source_token, target_token, source_drive_id, target_drive_id, item['id'], created_folder['id'])
+        else:
+            # 下载文件内容
+            file_content = download_file(item['@microsoft.graph.downloadUrl'])
+            file_name = item['name']
+            # 上传文件到目标租户
+            upload_file(target_token, target_drive_id, target_parent_id, file_name, file_content)
+            print(f"File uploaded: {file_name}")
 
 # 主逻辑
 if __name__ == "__main__":
@@ -80,21 +116,8 @@ if __name__ == "__main__":
         source_drive_id = source_drives[0]['id']  # 假设我们使用第一个驱动器
         target_drive_id = target_drives[0]['id']  # 假设我们使用第一个驱动器
 
-        # 读取源租户文件夹和文件数据
-        source_items = get_drive_items(source_token, source_drive_id)
-
-        for item in source_items:
-            # 递归复制文件夹及其内容
-            if 'folder' in item:
-                parent_id = None
-                if 'parentReference' in item:
-                    parent_id = item['parentReference']['id']
-                create_or_update_drive_item(target_token, target_drive_id, item, parent_id)
-            else:
-                # 复制文件
-                create_or_update_drive_item(target_token, target_drive_id, item)
-
-            print("Item transferred:", item)
+        # 递归复制源租户的根文件夹内容到目标租户的根文件夹
+        copy_folder_contents(source_token, target_token, source_drive_id, target_drive_id, None, None)
 
     except Exception as e:
         print("Error:", e)
