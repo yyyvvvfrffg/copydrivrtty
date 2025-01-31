@@ -58,6 +58,8 @@ if __name__ == "__main__":
         target_username = os.getenv("TARGET_USERNAME")
         target_password = os.getenv("TARGET_PASSWORD")
 
+        verified_domain = "4kz7gb.onmicrosoft.com"  # 目标租户中验证的域名
+
         # 检查是否所有环境变量都已设置
         if not all([source_client_id, source_client_secret, source_tenant_id, source_username, source_password]):
             raise Exception("Missing environment variables for source tenant")
@@ -75,6 +77,11 @@ if __name__ == "__main__":
         users = get_users(source_token)
         for user in users:
             print("User Data:", user)  # 打印用户数据
+            
+            # 修改 userPrincipalName 为使用目标租户的已验证域名
+            if 'userPrincipalName' in user:
+                user['userPrincipalName'] = user['userPrincipalName'].split('@')[0] + '@' + verified_domain
+            
             # 创建用户到目标租户
             response = create_user(target_token, user)
             print("Create User Response:", response)  # 打印创建用户的响应
