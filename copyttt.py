@@ -61,6 +61,8 @@ def upload_file(access_token, drive_id, parent_id, file_name, file_content):
 
 # 创建文件夹到目标租户
 def create_folder(access_token, drive_id, parent_id, folder_name, retries=3):
+    if not parent_id:
+        parent_id = 'root'  # 如果没有parent_id，则默认创建在根目录
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/items/{parent_id}/children"
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
     folder_data = {
