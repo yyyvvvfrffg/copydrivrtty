@@ -38,7 +38,9 @@ def create_user(access_token, user_data):
     url = "https://graph.microsoft.com/v1.0/users"
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
     response = requests.post(url, headers=headers, json=user_data)
-    return response.json()
+    response_data = response.json()
+    print("Create User Response:", response_data)  # 打印创建用户的响应
+    return response_data
 
 # 主逻辑
 if __name__ == "__main__":
@@ -72,8 +74,10 @@ if __name__ == "__main__":
         # 读取源租户用户数据
         users = get_users(source_token)
         for user in users:
+            print("User Data:", user)  # 打印用户数据
             # 创建用户到目标租户
-            create_user(target_token, user)
+            response = create_user(target_token, user)
+            print("Create User Response:", response)  # 打印创建用户的响应
 
     except Exception as e:
         print("Error:", e)
