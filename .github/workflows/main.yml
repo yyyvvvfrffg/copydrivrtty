@@ -1,1 +1,36 @@
+name: 复制用户
 
+on:
+  workflow_dispatch:
+
+jobs:
+  copy-users:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install requests
+
+      - name: 运行复制用户脚本
+        env:
+          SOURCE_CLIENT_ID: ${{ secrets.SOURCE_CLIENT_ID }}
+          SOURCE_CLIENT_SECRET: ${{ secrets.SOURCE_CLIENT_SECRET }}
+          SOURCE_TENANT_ID: ${{ secrets.SOURCE_TENANT_ID }}
+          SOURCE_USERNAME: ${{ secrets.SOURCE_USERNAME }}
+          SOURCE_PASSWORD: ${{ secrets.SOURCE_PASSWORD }}
+          TARGET_CLIENT_ID: ${{ secrets.TARGET_CLIENT_ID }}
+          TARGET_CLIENT_SECRET: ${{ secrets.TARGET_CLIENT_SECRET }}
+          TARGET_TENANT_ID: ${{ secrets.TARGET_TENANT_ID }}
+          TARGET_USERNAME: ${{ secrets.TARGET_USERNAME }}
+          TARGET_PASSWORD: ${{ secrets.TARGET_PASSWORD }}
+        run: |
+          python copyttt.py
