@@ -65,8 +65,7 @@ def create_folder(access_token, drive_id, parent_id, folder_name, retries=3):
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
     folder_data = {
         "name": folder_name,
-        "folder": {},
-        "@microsoft.graph.conflictBehavior": "replace"
+        "folder": {}
     }
     for attempt in range(retries):
         response = requests.post(url, headers=headers, json=folder_data)
