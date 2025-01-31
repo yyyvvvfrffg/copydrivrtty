@@ -19,22 +19,26 @@ def get_access_token(client_id, client_secret, tenant_id, username, password):
     else:
         raise Exception(f"Failed to get access token: {response_data}")
 
-# 读取源租户数据
-def get_users(access_token):
-    url = "https://graph.microsoft.com/v1.0/users"
+# 读取源租户文件夹和文件数据
+def get_drive_items(access_token, drive_id):
+    url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root/children"
     headers = {"Authorization": f"Bearer {access_token}"}
     response = requests.get(url, headers=headers)
     response_data = response.json()
     if "value" in response_data:
         return response_data["value"]
     else:
-        raise Exception(f"Failed to get users: {response_data}")
+        raise Exception(f"Failed to get drive items: {response_data}")
 
-# 写入目标租户数据
-def create_user(access_token, user_data):
-    url = "https://graph.microsoft.com/v1.0/users"
+# 创建或更新目标租户中的文件夹和文件
+def create_or_update_drive_item(access_token, drive_id, item_data, parent_id=None):
+    if parent_id:
+        url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/items/{parent_id}/children"
+    else:
+        url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root/children"
+    
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
-    response = requests.post(url, headers=headers, json=user_data)
+    response = requests.post(url, headers=headers, json=item_data)
     response_data = response.json()
     return response_data
 
@@ -54,30 +58,29 @@ if __name__ == "__main__":
         target_username = os.getenv("TARGET_USERNAME")
         target_password = os.getenv("TARGET_PASSWORD")
 
-        verified_domain = "4kz7gb.onmicrosoft.com"  # 目标租户中验证的域名
-
         # 获取访问令牌
         source_token = get_access_token(source_client_id, source_client_secret, source_tenant_id, source_username, source_password)
         target_token = get_access_token(target_client_id, target_client_secret, target_tenant_id, target_username, target_password)
 
-        # 读取源租户用户数据
-        users = get_users(source_token)
-        for user in users:
-            # 修改 userPrincipalName 为使用目标租户的已验证域名，并添加唯一标识符
-            user_prefix = user['userPrincipalName'].split('@')[0]
-            user['userPrincipalName'] = f"{user_prefix}_{user['id']}@{verified_domain}"
-            user['mailNickname'] = user_prefix
+        # 假设你有源租户和目标租户的驱动器ID
+        source_drive_id = "source_drive_id"
+        target_drive_id = "target_drive_id"
 
-            # 添加 accountEnabled 和 passwordProfile 字段，使用提供的密码
-            user['accountEnabled'] = True
-            user['passwordProfile'] = {
-                'forceChangePasswordNextSignIn': True,
-                'password': target_password
-            }
+        # 读取源租户文件夹和文件数据
+        source_items = get_drive_items(source_token, source_drive_id)
 
-            # 创建用户到目标租户
-            response = create_user(target_token, user)
-            print("Create User Response:", response)
+        for item in source_items:
+            # 递归复制文件夹及其内容
+            if item['folder']:
+                parent_id = None
+                if item['parentReference']:
+                    parent_id = item['parentReference']['id']
+                create_or_update_drive_item(target_token, target_drive_id, item, parent_id)
+            else:
+                # 复制文件
+                create_or_update_drive_item(target_token, target_drive_id, item)
+
+            print("Item transferred:", item)
 
     except Exception as e:
         print("Error:", e)
