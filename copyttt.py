@@ -75,6 +75,15 @@ def create_folder(access_token, drive_id, parent_id, folder_name, retries=3):
         print(f"Create folder response (attempt {attempt+1}): {response_data}")  # 打印API响应以调试
         if 'id' in response_data:
             return response_data
+        elif response_data['error']['code'] == 'nameAlreadyExists':
+            # 文件夹已存在，跳过创建
+            print(f"Folder {folder_name} already exists. Skipping creation.")
+            # 获取已存在文件夹的ID
+            existing_folder = get_drive_items(access_token, drive_id, parent_id)
+            for item in existing_folder:
+                if item['name'] == folder_name and 'folder' in item:
+                    return item
+            raise Exception(f"Failed to find existing folder after {retries} attempts: {response_data}")
         elif attempt < retries - 1:
             time.sleep(2 ** attempt)  # 指数退避重试
         else:
