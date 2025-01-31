@@ -38,6 +38,7 @@ def create_user(access_token, user_data):
     url = "https://graph.microsoft.com/v1.0/users"
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
     response = requests.post(url, headers=headers, json=user_data)
+    print(f"Creating user: {user_data['displayName']} - Response: {response.json()}")  # 打印创建用户的响应
     return response.json()
 
 # 主逻辑
@@ -73,7 +74,17 @@ if __name__ == "__main__":
         users = get_users(source_token)
         for user in users:
             # 创建用户到目标租户
-            create_user(target_token, user)
+            user_data = {
+                "accountEnabled": True,
+                "displayName": user["displayName"],
+                "mailNickname": user["mailNickname"],
+                "userPrincipalName": user["userPrincipalName"],
+                "passwordProfile": {
+                    "forceChangePasswordNextSignIn": True,
+                    "password": "your_password"
+                }
+            }
+            create_user(target_token, user_data)
 
     except Exception as e:
         print("Error:", e)
