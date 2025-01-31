@@ -21,29 +21,34 @@ def get_access_token(client_id, client_secret, tenant_id, username, password):
     else:
         raise Exception(f"Failed to get access token: {response_data}")
 
-# 读取源租户数据
-def get_users(access_token):
-    url = "https://graph.microsoft.com/v1.0/users"
+# 读取OneDrive的数据
+def get_onedrive_data(access_token):
+    url = "https://graph.microsoft.com/v1.0/me/drive/root/children"
     headers = {"Authorization": f"Bearer {access_token}"}
     response = requests.get(url, headers=headers)
     response_data = response.json()
-    print("Users Response:", response_data)  # 打印完整的响应
+    print("OneDrive Response:", response_data)  # 打印完整的响应
     if "value" in response_data:
         return response_data["value"]
     else:
-        raise Exception(f"Failed to get users: {response_data}")
+        raise Exception(f"Failed to get OneDrive data: {response_data}")
 
-# 写入目标租户数据
-def create_user(access_token, user_data):
-    url = "https://graph.microsoft.com/v1.0/users"
+# 复制文件到目标OneDrive
+def copy_to_target_onedrive(access_token, item, target_drive_id, target_folder_id):
+    url = f"https://graph.microsoft.com/v1.0/me/drive/items/{item['id']}/copy"
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
-    
-    # 删除用户数据中的邮件字段
-    user_data.pop('mail', None)
-    
-    response = requests.post(url, headers=headers, json=user_data)
-    print(f"Creating user: {user_data['displayName']} - Response: {response.json()}")  # 打印创建用户的响应
-    return response.json()
+    data = {
+        "parentReference": {
+            "driveId": target_drive_id,
+            "id": target_folder_id
+        },
+        "name": item["name"]
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 202:
+        print(f"Starting copy for {item['name']}")
+    else:
+        print(f"Failed to start copy for {item['name']}: {response.json()}")
 
 # 主逻辑
 if __name__ == "__main__":
@@ -61,10 +66,13 @@ if __name__ == "__main__":
         target_username = os.getenv("TARGET_USERNAME")
         target_password = os.getenv("TARGET_PASSWORD")
 
+        target_drive_id = os.getenv("TARGET_DRIVE_ID")
+        target_folder_id = os.getenv("TARGET_FOLDER_ID")
+
         # 检查是否所有环境变量都已设置
         if not all([source_client_id, source_client_secret, source_tenant_id, source_username, source_password]):
             raise Exception("Missing environment variables for source tenant")
-        if not all([target_client_id, target_client_secret, target_tenant_id, target_username, target_password]):
+        if not all([target_client_id, target_client_secret, target_tenant_id, target_username, target_password, target_drive_id, target_folder_id]):
             raise Exception("Missing environment variables for target tenant")
 
         print("Source Client ID:", source_client_id)
@@ -74,21 +82,11 @@ if __name__ == "__main__":
         source_token = get_access_token(source_client_id, source_client_secret, source_tenant_id, source_username, source_password)
         target_token = get_access_token(target_client_id, target_client_secret, target_tenant_id, target_username, target_password)
 
-        # 读取源租户用户数据
-        users = get_users(source_token)
-        for user in users:
-            # 创建用户到目标租户
-            user_data = {
-                "accountEnabled": True,
-                "displayName": user["displayName"],
-                "mailNickname": user.get("mailNickname", ""),
-                "userPrincipalName": user["userPrincipalName"],
-                "passwordProfile": {
-                    "forceChangePasswordNextSignIn": True,
-                    "password": "your_password"
-                }
-            }
-            create_user(target_token, user_data)
+        # 读取源OneDrive数据
+        items = get_onedrive_data(source_token)
+        for item in items:
+            # 复制到目标OneDrive
+            copy_to_target_onedrive(target_token, item, target_drive_id, target_folder_id)
 
     except Exception as e:
         print("Error:", e)
