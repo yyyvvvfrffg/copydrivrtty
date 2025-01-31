@@ -162,4 +162,30 @@ if __name__ == "__main__":
             source_username = os.getenv("SOURCE_USERNAME")
             source_password = os.getenv("SOURCE_PASSWORD")
 
-            target_client
+            target_client_id = os.getenv("TARGET_CLIENT_ID")
+            target_client_secret = os.getenv("TARGET_CLIENT_SECRET")
+            target_tenant_id = os.getenv("TARGET_TENANT_ID")
+            target_username = os.getenv("TARGET_USERNAME")
+            target_password = os.getenv("TARGET_PASSWORD")
+
+            # 获取访问令牌
+            source_token = get_access_token(source_client_id, source_client_secret, source_tenant_id, source_username, source_password)
+            target_token = get_access_token(target_client_id, target_client_secret, target_tenant_id, target_username, target_password)
+
+            # 获取源租户和目标租户的驱动器 ID
+            source_drives = get_drives(source_token)
+            target_drives = get_drives(target_token)
+
+            source_drive_id = source_drives[0]['id']  # 假设我们使用第一个驱动器
+            target_drive_id = target_drives[0]['id']  # 假设我们使用第一个驱动器
+
+            # 递归复制源租户的根文件夹内容到目标租户的根文件夹
+            copy_folder_contents(source_token, target_token, source_drive_id, target_drive_id, None, None)
+
+        except Exception as e:
+            print("Error:", e)
+            # 等待3分钟后重试
+            wait_time = 180  # 3分钟
+            print(f"An error occurred. Waiting for {wait_time} seconds before retrying...")
+            time.sleep(wait_time)
+            continue  # 继续循环，重试操作
