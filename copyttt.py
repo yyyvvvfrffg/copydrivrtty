@@ -83,7 +83,17 @@ def create_folder(access_token, drive_id, parent_id, folder_name, retries=3):
             print(f"Response: {response_data}")
             raise Exception(f"Failed to create folder after {retries} attempts: {response_data}")
 
-# 递归复制文件夹及其内容
+# 删除文件或文件夹
+def delete_item(access_token, drive_id, item_id):
+    url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/items/{item_id}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = requests.delete(url, headers=headers)
+    if response.status_code == 204:
+        print(f"Item {item_id} deleted successfully.")
+    else:
+        print(f"Failed to delete item {item_id}: {response.status_code}, {response.text}")
+
+# 递归复制文件夹及其内容，并删除源文件
 def copy_folder_contents(source_token, target_token, source_drive_id, target_drive_id, source_parent_id, target_parent_id):
     items = get_drive_items(source_token, source_drive_id, source_parent_id)
     for item in items:
@@ -95,6 +105,8 @@ def copy_folder_contents(source_token, target_token, source_drive_id, target_dri
                 raise KeyError(f"Created folder response does not contain 'id': {created_folder}")
             # 递归复制文件夹内容
             copy_folder_contents(source_token, target_token, source_drive_id, target_drive_id, item['id'], created_folder['id'])
+            # 删除源文件夹
+            delete_item(source_token, source_drive_id, item['id'])
         else:
             # 下载文件内容
             file_content = download_file(item['@microsoft.graph.downloadUrl'])
@@ -102,6 +114,8 @@ def copy_folder_contents(source_token, target_token, source_drive_id, target_dri
             # 上传文件到目标租户
             upload_file(target_token, target_drive_id, target_parent_id, file_name, file_content)
             print(f"File uploaded: {file_name}")
+            # 删除源文件
+            delete_item(source_token, source_drive_id, item['id'])
 
 # 主逻辑
 if __name__ == "__main__":
