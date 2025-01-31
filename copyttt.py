@@ -1,5 +1,6 @@
 import requests
 import os
+import time
 
 # 获取访问令牌
 def get_access_token(client_id, client_secret, tenant_id, username, password):
@@ -59,7 +60,7 @@ def upload_file(access_token, drive_id, parent_id, file_name, file_content):
     return response_data
 
 # 创建文件夹到目标租户
-def create_folder(access_token, drive_id, parent_id, folder_name):
+def create_folder(access_token, drive_id, parent_id, folder_name, retries=3):
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/items/{parent_id}/children"
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
     folder_data = {
@@ -67,10 +68,16 @@ def create_folder(access_token, drive_id, parent_id, folder_name):
         "folder": {},
         "@microsoft.graph.conflictBehavior": "replace"
     }
-    response = requests.post(url, headers=headers, json=folder_data)
-    response_data = response.json()
-    print(f"Create folder response: {response_data}")  # 打印API响应以调试
-    return response_data
+    for attempt in range(retries):
+        response = requests.post(url, headers=headers, json=folder_data)
+        response_data = response.json()
+        print(f"Create folder response (attempt {attempt+1}): {response_data}")  # 打印API响应以调试
+        if 'id' in response_data:
+            return response_data
+        elif attempt < retries - 1:
+            time.sleep(2 ** attempt)  # 指数退避重试
+        else:
+            raise Exception(f"Failed to create folder after {retries} attempts: {response_data}")
 
 # 递归复制文件夹及其内容
 def copy_folder_contents(source_token, target_token, source_drive_id, target_drive_id, source_parent_id, target_parent_id):
