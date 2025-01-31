@@ -82,6 +82,12 @@ if __name__ == "__main__":
             if 'userPrincipalName' in user:
                 user['userPrincipalName'] = user['userPrincipalName'].split('@')[0] + '@' + verified_domain
             
+            # 添加 passwordProfile 字段，使用提供的密码
+            user['passwordProfile'] = {
+                'forceChangePasswordNextSignIn': True,
+                'password': target_password
+            }
+            
             # 创建用户到目标租户
             response = create_user(target_token, user)
             print("Create User Response:", response)  # 打印创建用户的响应
