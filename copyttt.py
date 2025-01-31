@@ -82,7 +82,8 @@ if __name__ == "__main__":
             if 'userPrincipalName' in user:
                 user['userPrincipalName'] = user['userPrincipalName'].split('@')[0] + '@' + verified_domain
             
-            # 添加 passwordProfile 字段，使用提供的密码
+            # 添加 accountEnabled 和 passwordProfile 字段，使用提供的密码
+            user['accountEnabled'] = True
             user['passwordProfile'] = {
                 'forceChangePasswordNextSignIn': True,
                 'password': target_password
