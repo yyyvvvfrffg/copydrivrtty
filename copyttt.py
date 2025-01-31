@@ -19,6 +19,17 @@ def get_access_token(client_id, client_secret, tenant_id, username, password):
     else:
         raise Exception(f"Failed to get access token: {response_data}")
 
+# 获取驱动器列表
+def get_drives(access_token):
+    url = "https://graph.microsoft.com/v1.0/me/drives"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = requests.get(url, headers=headers)
+    response_data = response.json()
+    if "value" in response_data:
+        return response_data["value"]
+    else:
+        raise Exception(f"Failed to get drives: {response_data}")
+
 # 读取源租户文件夹和文件数据
 def get_drive_items(access_token, drive_id):
     url = f"https://graph.microsoft.com/v1.0/drives/{drive_id}/root/children"
@@ -62,18 +73,21 @@ if __name__ == "__main__":
         source_token = get_access_token(source_client_id, source_client_secret, source_tenant_id, source_username, source_password)
         target_token = get_access_token(target_client_id, target_client_secret, target_tenant_id, target_username, target_password)
 
-        # 假设你有源租户和目标租户的驱动器ID
-        source_drive_id = "source_drive_id"
-        target_drive_id = "target_drive_id"
+        # 获取源租户和目标租户的驱动器 ID
+        source_drives = get_drives(source_token)
+        target_drives = get_drives(target_token)
+
+        source_drive_id = source_drives[0]['id']  # 假设我们使用第一个驱动器
+        target_drive_id = target_drives[0]['id']  # 假设我们使用第一个驱动器
 
         # 读取源租户文件夹和文件数据
         source_items = get_drive_items(source_token, source_drive_id)
 
         for item in source_items:
             # 递归复制文件夹及其内容
-            if item['folder']:
+            if 'folder' in item:
                 parent_id = None
-                if item['parentReference']:
+                if 'parentReference' in item:
                     parent_id = item['parentReference']['id']
                 create_or_update_drive_item(target_token, target_drive_id, item, parent_id)
             else:
