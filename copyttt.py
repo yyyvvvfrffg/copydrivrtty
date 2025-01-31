@@ -69,6 +69,7 @@ def create_folder(access_token, drive_id, parent_id, folder_name):
     }
     response = requests.post(url, headers=headers, json=folder_data)
     response_data = response.json()
+    print(f"Create folder response: {response_data}")  # 打印API响应以调试
     return response_data
 
 # 递归复制文件夹及其内容
@@ -79,6 +80,8 @@ def copy_folder_contents(source_token, target_token, source_drive_id, target_dri
             # 创建文件夹
             folder_name = item['name']
             created_folder = create_folder(target_token, target_drive_id, target_parent_id, folder_name)
+            if 'id' not in created_folder:
+                raise KeyError(f"Created folder response does not contain 'id': {created_folder}")
             # 递归复制文件夹内容
             copy_folder_contents(source_token, target_token, source_drive_id, target_drive_id, item['id'], created_folder['id'])
         else:
