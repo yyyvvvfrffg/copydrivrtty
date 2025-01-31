@@ -78,10 +78,10 @@ if __name__ == "__main__":
         for user in users:
             print("User Data:", user)  # 打印用户数据
             
-            # 修改 userPrincipalName 为使用目标租户的已验证域名
+            # 修改 userPrincipalName 为使用目标租户的已验证域名，并添加唯一标识符
             if 'userPrincipalName' in user:
                 user_prefix = user['userPrincipalName'].split('@')[0]
-                user['userPrincipalName'] = user_prefix + '@' + verified_domain
+                user['userPrincipalName'] = f"{user_prefix}_{user['id']}@{verified_domain}"
                 user['mailNickname'] = user_prefix
             
             # 添加 accountEnabled 和 passwordProfile 字段，使用提供的密码
