@@ -12,10 +12,8 @@ def get_access_token(client_id, client_secret, tenant_id, username, password):
         "username": username,
         "password": password
     }
-    print("Requesting access token with data:", data)  # 打印请求数据
     response = requests.post(url, data=data)
     response_data = response.json()
-    print("Token Response:", response_data)  # 打印完整的响应
     if "access_token" in response_data:
         return response_data["access_token"]
     else:
@@ -27,7 +25,6 @@ def get_onedrive_data(access_token):
     headers = {"Authorization": f"Bearer {access_token}"}
     response = requests.get(url, headers=headers)
     response_data = response.json()
-    print("OneDrive Response:", response_data)  # 打印完整的响应
     if "value" in response_data:
         return response_data["value"]
     else:
@@ -74,9 +71,6 @@ if __name__ == "__main__":
             raise Exception("Missing environment variables for source tenant")
         if not all([target_client_id, target_client_secret, target_tenant_id, target_username, target_password, target_drive_id, target_folder_id]):
             raise Exception("Missing environment variables for target tenant")
-
-        print("Source Client ID:", source_client_id)
-        print("Target Client ID:", target_client_id)
 
         # 获取访问令牌
         source_token = get_access_token(source_client_id, source_client_secret, source_tenant_id, source_username, source_password)
