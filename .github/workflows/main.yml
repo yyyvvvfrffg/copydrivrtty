@@ -32,7 +32,5 @@ jobs:
           TARGET_TENANT_ID: ${{ secrets.TARGET_TENANT_ID }}
           TARGET_USERNAME: ${{ secrets.TARGET_USERNAME }}
           TARGET_PASSWORD: ${{ secrets.TARGET_PASSWORD }}
-          TARGET_DRIVE_ID: ${{ secrets.TARGET_DRIVE_ID }}
-          TARGET_FOLDER_ID: ${{ secrets.TARGET_FOLDER_ID }}
         run: |
           python copyttt.py
