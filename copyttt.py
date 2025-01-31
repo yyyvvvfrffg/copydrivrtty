@@ -37,6 +37,10 @@ def get_users(access_token):
 def create_user(access_token, user_data):
     url = "https://graph.microsoft.com/v1.0/users"
     headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+    
+    # 删除用户数据中的邮件字段
+    user_data.pop('mail', None)
+    
     response = requests.post(url, headers=headers, json=user_data)
     print(f"Creating user: {user_data['displayName']} - Response: {response.json()}")  # 打印创建用户的响应
     return response.json()
@@ -77,7 +81,7 @@ if __name__ == "__main__":
             user_data = {
                 "accountEnabled": True,
                 "displayName": user["displayName"],
-                "mailNickname": user["mailNickname"],
+                "mailNickname": user.get("mailNickname", ""),
                 "userPrincipalName": user["userPrincipalName"],
                 "passwordProfile": {
                     "forceChangePasswordNextSignIn": True,
